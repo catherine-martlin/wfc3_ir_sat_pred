@@ -266,7 +266,7 @@ def eval_one_main(filename,outroot):
             print('Could not fetch apt file so quitting')
             return
 
-    x=read_apt.doit(filename,table)
+    x=read_apt.read_apt_main(filename,table)
 
     if x==True:
         print('Analysis of apt file is complete')
