@@ -15,11 +15,11 @@ History:
            for the persistence software
 
 '''
-
 def begin(title='Title'):
     '''
     Start an html page 
     '''
+
     string='''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="en">
 <head>
@@ -36,6 +36,7 @@ def end():
     '''
     Finish and html page
     '''
+
     string='''\n</body> \n</html>'''
     return string
 
@@ -43,14 +44,13 @@ def paragraph(content='This is a paragraph.  Who knows whether to continue'):
     '''
     Add a paragraph to the page
     '''
-    string = '\n<p> \n    %s \n</p>\n' % content
+    string = '\n<p> \n  %s \n</p>\n' % content
 
     return string
 
 def link(text='here',href='foo.txt'):
     '''
     Make a link to the page
-
     Note: generally speaking one needs to put this in a string for a paragraph
     '''
     string='''
@@ -65,7 +65,7 @@ def image(image='test.png',alt='Thumbnails',width=400,height=400):
     Add a centered image to a page 
     '''
     string='''\n<div style="text-align: center; display:inline;">'''
-    string=string+'''\n    <img alt="%s" src="%s" width="%d" height="%d"> \n''' % (alt,image,width,height)
+    string=string+'''\n <img alt="%s" src="%s" width="%d" height="%d"> \n''' % (alt,image,width,height)
     string=string+'''</div>\n'''
 
     return string 
@@ -78,11 +78,11 @@ def table(lines, width="100%"):
 
     string='''\n<table border="1" cellpadding="2" cellspacing="2" width="%s">\n''' %(width)
     for line in lines:
-    row='<tr>\n'
-    for word in line:
-    row=row+'    <td> %s </td>\n' % word
-    row=row+'<tr>\n'
-    string=string+row
+        row='<tr>\n'
+        for word in line:
+            row=row+'   <td> %s </td>\n' % word
+        row=row+'<tr>\n'
+        string=string+row
     trailer='''
 </tbody>
 </table>
@@ -125,14 +125,13 @@ def h3(line):
 def add_list(lines):
     '''
     Add a simple list
-
     Note - This routine is named add_list rather than list
     to avoid confusion with python lists
     '''
     string='\n<ul>'
     for line in lines:
-    line=line.strip()
-    string=string+'\n    <li>%s</li>' % line
+        line=line.strip()
+        string=string+'\n   <li>%s</li>' % line
     string=string+'\n</ul>'
 
     return string
@@ -144,8 +143,7 @@ def preformat(lines):
 
     string='<pre>'
     for line in lines:
-    line=line.replace('\n','')
-    string=string+line+'<br>'
+        line=line.replace('\n','')
+        string=string+line+'<br>'
     string=string+'</pre>'
     return string
-
