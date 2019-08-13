@@ -299,7 +299,7 @@ def eval_one_main(filename,outroot):
         elif one['RA']!=-99.:
             name='%s_%s_%010.6f_%010.6f_%s_%04.0f' %(root,one['Target'],one['RA'],one['Dec'],one['Filter'],one['Exptime'])
 
-            num_1x,num_5x,num_10x=actor.doit(ra=one['RA'], dec=one['Dec'], xfilter=one['Filter'], exp=one['Exptime'], rad=3, outroot=name)
+            num_1x,num_5x,num_10x=actor.actor_main(ra=one['RA'], dec=one['Dec'], xfilter=one['Filter'], exp=one['Exptime'], rad=3, outroot=name)
             saturated[3]=num_1x
             saturated[4]=num_5x
             saturated[5]=num_10x
