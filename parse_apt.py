@@ -6,11 +6,12 @@ Parse APT file, print information for every exposure
 
 """
 import os
+
+from collections import OrderedDict
+import numpy as np
 import xmltodict
 
-import numpy as np
-from collections import OrderedDict
-def go(apt_file='test.apt', program=None):
+def parse_apt_main(apt_file='test.apt', program=None):
     """
     Parse an APT file to print a report like
     
@@ -53,8 +54,6 @@ def go(apt_file='test.apt', program=None):
                                   ('RA', ':'.join(targ['EquatorialPosition']['@Value'].split()[0:3])),
                                   ('Dec', ':'.join(targ['EquatorialPosition']['@Value'].split()[3:]))])
                                   
-    #print ''
-    
     pattern_dict = {}
     patterns = d['HSTProposal']['Patterns']
     if patterns is not None:
@@ -64,28 +63,24 @@ def go(apt_file='test.apt', program=None):
         #
         for pattern in patterns:
             pattern_dict[pattern['Number']] = pattern 
-            #print 'Pattern |%2s|: %26s  N-points=%s' %(pattern['Number'], pattern['PatternType'], pattern['NumberOfPoints'])           
     else:
         patterns = []
         
     if not isinstance(visits, list):
         visits = [visits]
         
-    #visit = visits[0]
     for i, visit in enumerate(visits):
         orient_str = ''
         if 'Orient' in visit.keys():
             orients = visit['Orient']
             if not isinstance(visit['Orient'], list):
                 orients = [orients]
-            #
             orient_str = '(ORIENT = %s' %(', '.join(['%11s' %(('%5s-%5s' %(orient['From']['@Degrees'], orient['To']['@Degrees'])).replace(' ','')) for orient in orients]))
             if 'FromVisit' in orients[0].keys():
                 orient_str += ', from %s)' %(orients[0]['FromVisit']['@Visit'])
             else:
                 orient_str += ')'
                 
-        #print '\n==  (%2d) Visit: %s  %s ==\n' %(i+1, visit['@Number'], orient_str)
         if 'ExposureGroup' not in visit.keys():
             grps = []
         else:
@@ -131,7 +126,6 @@ def go(apt_file='test.apt', program=None):
                         
         for exp, exp_pattern in zip(all_exps, grp_pattern):
             if 'IR' in exp['@Config']:
-                #sampseq = '.'.join(exp['InstrumentParameters'].values()[::-1])
                 sampseq = '%8s  %2s' %(exp['InstrumentParameters']['@SAMP-SEQ'], exp['InstrumentParameters']['@NSAMP']) 
             else:
                 sampseq = exp['ExposureTime']['@Secs']+'s'
@@ -140,7 +134,6 @@ def go(apt_file='test.apt', program=None):
                     if '@FLASH' in exp['InstrumentParameters'].keys():
                         flash = ' FLASH-%-2s' %(exp['InstrumentParameters']['@FLASH'])
                 sampseq += flash
-                
             sampseq = '%-11s %s' %(sampseq, exp_pattern)
             
             #### POS-TARGs
@@ -150,16 +143,13 @@ def go(apt_file='test.apt', program=None):
                 pt_asec = []
                 for key in ['@X', '@Y']:
                     pt_asec.append(float(exp['PosTarg'][key]) / ps[exp['@Config']][key])
-                #
                 if has_postarg == 0:
                     pt_ref = [pt_asec[0], pt_asec[1]]
                     has_postarg = 1
-                #
                 pt_asec = ', '.join(['%6.2f' %(pt_asec[i]-pt_ref[i]) for i in range(2)])
                 offset_str = '(%14s) / (%s)' %(pt_xy, pt_asec)
                 offset_str = '%14s' %(pt_xy)
             
-            #
             if '@SamePosAs' in exp.keys():
                 offset_str += ' SamePosAs-%s' %(exp['@SamePosAs'])
             
@@ -172,8 +162,6 @@ def go(apt_file='test.apt', program=None):
                         
             if exp['@Config'] == 'WFC3/IR':
                 fp.write(details+'\n')
-                #print details #
-            
             i_exp += 1
     
     fp.close()
@@ -182,7 +170,7 @@ def go(apt_file='test.apt', program=None):
 if __name__ == '__main__':
     import sys
     if 'apt' not in sys.argv[1]:    
-        go(program=int(sys.argv[1]))
+        parse_apt_main(program=int(sys.argv[1]))
     else:
-        go(apt_file=sys.argv[1])
+        parse_apt_main(apt_file=sys.argv[1])
         

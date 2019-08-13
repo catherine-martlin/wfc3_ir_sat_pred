@@ -20,7 +20,7 @@ def make_plots(apt_file='gbb_snap.apt', program=None):
     """
     from . import parse_apt
 
-    pid = parse_apt.go(apt_file=apt_file, program=program)
+    pid = parse_apt.parse_apt_main(apt_file=apt_file, program=program)
 
     t = astropy.table.Table()
     report = t.read('%s.IR.report' %(pid), format='ascii.commented_header')
