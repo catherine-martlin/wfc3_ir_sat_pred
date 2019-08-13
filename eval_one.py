@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
 '''
-                    Space Telescope Science Institute
-
 Synopsis:
 
 Completely process a single proposal producing all of the outputs
 needed to determine whether visits in the proposal should be bad
 actors
-
 
 Command line usage (if any):
 
@@ -43,14 +40,7 @@ Primary routines:
 Notes:
     Apt files can be complicated and their detailed structure
     is not documented so it is possible that the routine will
-    fail.  In that case, contact the developers or better yet
-    raise the issue on the git site for this effort.
-
-    https://grit.stsci.edu/long/badactor/issues
-
-    Obviously one should identify
-
-
+    fail. 
 
 History:
 
@@ -58,33 +48,32 @@ History:
 
 '''
 
-import sys
-import os
-from astropy.io import ascii
-from astropy.table import Table
-import numpy
-# from . import read_apt
-# from . import actor
-# from . import persist_2mass
 import read_apt
 import actor
 import persist_2mass
-import astropy.io.fits as fits
-from collections import OrderedDict
-import matplotlib
-matplotlib.use('Agg')
-import pylab
-from matplotlib import gridspec
+
+import os
+import sys
 import subprocess
 
+from astropy.io import ascii
+from astropy.io import fits
+from astropy.table import Table
+from collections import OrderedDict
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import numpy as np
+import pylab
+
+##### Relevant level for saturation
+SATLEVEL = 75000
 
 def read_table(filename='foo.txt'):
     '''
     Read a file using astropy.io.ascii and
     return this
-
-    Description:
 
     Notes:
 
@@ -108,8 +97,6 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     '''
     Create 2Mass images of the source region and analyze them for persistence.
 
-    Description
-
     Notes
 
     Insofar as possilbe I will try to use Gabe's routines
@@ -129,8 +116,6 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
 
     fits_file=outroot+'.fits'
 
-
-    # For now I do not have a way to force this to occur
     if (not os.path.exists(fits_file)) :
         print('Fetch 2MASS... %s' % fits_file)
         persist_2mass.montage_cutout(ra=ra,dec=dec,output=fits_file,survey='2MASS', band=xxfilter, verbose=False, clean=True)
@@ -146,12 +131,9 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     #### Scaled to WFC3/IR VEGAmag ZP
     scaled = persist_2mass.scale_image(fits_file, xfilter)
 
-    ##### Relevant level for saturation
-    SATLEVEL = 75000
-
     time_to_saturate = SATLEVEL/scaled
 
-    # Next step replaces negative values, note that I did not know you could do this
+    # Next step replaces negative values
     time_to_saturate[time_to_saturate < 0] = 1e8
 
     # Calcualate the total number of saturated pixels
@@ -166,11 +148,9 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     print('NSATPIX',NSATPIX)
 
     #### Make figure
-    # xs = 6
-    # fig=pylab.figure(2,figsize=[xs,xs/2.*1.05])
-
     fig=pylab.figure(2,(12,5.5))
     fig.clf()
+
     #### Image, saturation diagnostic, and color bar
     gs = gridspec.GridSpec(1, 3, width_ratios=[1,1,0.05])
 
@@ -196,25 +176,21 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
 
     ax.set_title(title)
     ax.set_xticklabels([]); ax.set_yticklabels([])
-    # ax.text(0.5, 0.98, report_line['Target'], fontsize=10, ha='center', va='top', backgroundcolor='white', transform=ax.transAxes)
-
+    
     #### Saturated imagge
     ax = fig.add_subplot(gs[1])
 
     # This is a depature from Gabe's routine
     saturated=total_fluence/SATLEVEL
-    #ii = ax.imshow(saturated, vmin=0, vmax=5, interpolation='Nearest', cmap='jet', origin='lower')
-
+    
     ### Discrete colormap
     ### from http://stackoverflow.com/questions/14777066/matplotlib-discrete-colorbar
-    import matplotlib as mpl
-    mpl.use('Agg')
-    import matplotlib.pyplot as plt
-
     cmap = plt.cm.gist_earth_r
     cmaplist = [cmap(i) for i in range(cmap.N)]
+
     # create the new map
     cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
+
     # define the bins and normalize
     bounds = np.linspace(-0.25,5.25,12)
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
@@ -232,14 +208,7 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
         ax.text(0.05, 0.95, label, ha='left', va='top', transform=ax.transAxes)
 
     ax.set_xticklabels([]); ax.set_yticklabels([])
-
-    ## Cannot do next two lines because do not have all of the info
-    # title = '%d visit: %s exp: %02d' %(report_line['PID'], str(report_line['Visit']), report_line['Exp'])
-    # ax.set_title(title)
-
-
     fig.tight_layout(pad=0.2)
-    #fig.show()
     fig.savefig(outroot+'_image.png')
 
     return NSATPIX
