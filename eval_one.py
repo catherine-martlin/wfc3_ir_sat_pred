@@ -124,6 +124,8 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
 
     #### Scaled to WFC3/IR VEGAmag ZP
     scaled = persist_2mass.scale_image(fits_file, xfilter)
+    print(xfilter)
+    print("Scale for calc saturated pixels: ", scaled)
 
     time_to_saturate = SATLEVEL/scaled
 

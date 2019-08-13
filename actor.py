@@ -380,7 +380,7 @@ def actor_main(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     if len(xxx)>0:
         xxx.write(outroot+'.stars.txt',format='ascii.fixed_width_two_line',overwrite=True)
     else:
-        print('This field has not bright stars of concrn')
+        print('This field has no bright stars of concern')
 
     # Now make a plot
     data['x']=60*(data['ra']-ra)*math.cos(dec/RADIAN)

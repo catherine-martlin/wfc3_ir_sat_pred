@@ -10,12 +10,13 @@ import os
 import astropy.table
 import astropy.io.fits as pyfits
 from collections import OrderedDict
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import montage_wrapper as montage
+import numpy as np
+import scipy.ndimage as nd
 
 import parse_apt
 
@@ -89,6 +90,7 @@ def persist_plot(table_line=None, force_2mass=False, *args, **kwargs):
         sat_read[sat] = i
 
     ### Calculate number of saturated pixels
+    print("Scale for calc saturated pixels: ". scaled)
     total_fluence = EXPTIME*scaled
 
     sat_levels = [1,5,10]
@@ -154,8 +156,6 @@ def compare_flt_2mass(flt_file='../RAW/ib6wr9b3q_flt.fits'):
     '''
     Compare FLT to scaled 2MASS prediction
     '''
-    import scipy.ndimage as nd
-
     im = pyfits.open(flt_file)
     h = im[0].header
     h1 = im[1].header
@@ -226,7 +226,7 @@ def get_read_times(SAMPSEQ='STEP50', NSAMP=8):
 
     return samples[SAMPSEQ][:NSAMP]
 
-def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
+def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter=''):
     '''
     Scale a 2MASS cutout to a WFC3 filter
     '''
@@ -255,11 +255,11 @@ def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
                 'G141' : 19.4}
 
     im = pyfits.open(img)
-    print(im[0].header)
 
     #### Scale factor includes the ZPs and the square of the plate scales (WFC3/IR hard-coded)
     try:
         ZP = im[0].header['MAGZP'] #+ 0.885
+        print('The MAGZP value in the header: ', ZP)
     except:
         print('Error: There is no MAGZP value in the header. Using hard-coded value.')
         h = im[0].header
@@ -271,10 +271,14 @@ def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
             ZP = 20.905 #average of the jband read_2 from 2MASS
         elif twomass_filter == 'h':
             ZP = 20.3243041848514 
+        elif twomass_filter == '':
+            print("No twomass_filter set - this may be wrong.")
+            ZP = 20.
 
     plate_scale = np.abs(im[0].header['CDELT1']*3600)
     try:
         scl = 10**(-0.4*(ZP-WFC3_ZPS[filter]))/(plate_scale/0.128254)**2
+        print('Scale: ',scl)
     except KeyError:
         print('Error: scale_image: No filter %s' % filter)
 
@@ -308,8 +312,7 @@ def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, 
         else:
             target = '%.6f %.6f' %(ra, dec)
     
-    montage.mHdr(target, width/60., 'montage.hdr', system=None, equinox=None, height=None, pix_size=pix_size, rotation=rotation)
-    #montage.mHdr(target, width/60., 'montage.hdr', system=None, equinox=None, height=None, pix_size=pix_size, rotation=rotation, twomass_band=band)
+    montage.mHdr(target, width/60., 'montage.hdr', system=None, equinox=None, height=None, pix_size=pix_size, rotation=rotation, band=band)
 
     if os.path.exists('montage-tmp'):
         os.system('rm -rf montage-tmp')
@@ -317,12 +320,11 @@ def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, 
     if verbose:
         print('Generate %s/%s cutout:\n %s, width=%f arcmin' %(survey, band, target, width))
 
-    # status = montage.mExec(survey, band, raw_dir=None, n_tile_x=None, n_tile_y=None, level_only=False, keep=True, corners=False, output_image=output, debug_level=1, region_header='montage.hdr', header=None, workspace_dir='montage-tmp')
     status = montage.mExec(survey, band, raw_dir=None, n_tile_x=None, n_tile_y=None, level_only=False, keep=True, remove=False, output_image=output, debug_level=1, region_header='montage.hdr', header=None, workspace_dir='montage-tmp')
 
     ### Get ZP
     file_ix = -1
-    scale_ix = -3
+    scale_ix = -11
     if survey == 'SDSS':
         file_ix = -3
         scale_ix = -2
@@ -330,18 +332,28 @@ def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, 
     line = open('montage-tmp/remote.tbl').readlines()[3].split()
     print(line)
     scale = float(line[scale_ix])
+    print("scale: ",scale)
 
     raw_img = pyfits.open('montage-tmp/raw/%s' %(line[file_ix]))
 
     im = pyfits.open(output, mode='update')
 
     if survey == '2MASS':
-        if band == 'j':
-            MAGZP = 20.905 #average of the jband read_2 from 2MASS
-        elif band == 'h':
-            MAGZP = 20.3243041848514 #average of the 2 H band images from this region https://irsa.ipac.caltech.edu/workspace/TMP_M7TTAa_20769/IM/inv_qxqRD8/found.html 
-        #ZP = raw_img[0].header['MAGZP']-2.5*np.log10(scale)
-        ZP = MAGZP-2.5*np.log10(scale)
+        try:
+            MAGZP = raw_img[0].header['MAGZP']
+            ZP = MAGZP-2.5*np.log10(scale)
+        except: 
+            print('Error: There is no MAGZP value in the header. Using hard-coded value.')
+            h = im[0].header
+            c = h.cards
+            for i in range(len(c)):
+                if 'MAGZP' in ' '.join(np.cast[str](c[i])):
+                    break
+            if band == 'j':
+                MAGZP = 20.905 #average of the jband read_2 from 2MASS
+            elif band == 'h':
+                MAGZP = 20.3243041848514 #average of the 2 H band images from this region https://irsa.ipac.caltech.edu/workspace/TMP_M7TTAa_20769/IM/inv_qxqRD8/found.html 
+            ZP = MAGZP-2.5*np.log10(scale)
 
     if survey == 'SDSS':
         if 'FLUX20' not in list(raw_img[0].header.keys()):
@@ -349,7 +361,8 @@ def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, 
         else:
             ZP = 20+2.5*np.log10(raw_img[0].header['FLUX20'])
 
-    #im[0].header['MAGZP'] = ZP
+    print(ZP)
+    im[0].header['MAGZP'] = ZP
     im.flush()
 
 
