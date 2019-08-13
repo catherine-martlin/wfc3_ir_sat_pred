@@ -1,17 +1,13 @@
 #!/usr/bin/env python 
 
 '''
-                    Space Telescope Science Institute
-
-Synopsis:  
-
 Read an APT file and extract a summary of information from
 it in order to enabble an estimat of the likely persistence.
 
-The results are written out as a astrpy.ascii table
+The results are written out as a astropy.ascii table
 
 
-Command line usage (if any):
+Command line usage:
 
     usage: read_apt.py filename
 
@@ -19,9 +15,9 @@ Description:
 
     The routine reads the APT file and abstracts certain
     information from it.  The information is written
-    out in an ascii table which be default is named
-    root_sum.txt where root is the root name of the 
-    apt file
+    to an ascii table where the default name is
+    'root'_sum.txt where root is the root name of the 
+    apt file.
 
 Primary routines:
 
@@ -36,30 +32,24 @@ History:
 '''
 
 import sys
-from astropy.io import ascii
-import numpy
-import xml.etree.ElementTree as ET
-from astropy.table import Table,join
-import persist_2mass
-import urllib.request, urllib.error, urllib.parse
 
-def doit(filename='test.apt',outfile=''):
+from astropy.io import ascii
+from astropy.table import Table,join
+import numpy as np
+import urllib.request, urllib.error, urllib.parse
+import xml.etree.ElementTree as ET
+
+import persist_2mass
+
+def read_apt_main(filename='test.apt',outfile=''):
     '''
     Read a standard apt file and create a summary of certain
     elements of the file.  Produce an output file that contains
-    one line per exposure
-
-    Description:
-
-
-    By default the outputfile name is rootname_sum.txt
-
-
+    one line per exposure.
 
     Notes:
-
     The routine reads the APT file using element tree.  In ET
-    one can burrow down into an XML file much as if it were
+    one can burrow down into an XML file as if it were
     a directory structure. Wildcards are allowed.  There are
     two main ways to burrow down.  (This is useful, because
     differnt HST proposals have different depths, that 
@@ -69,11 +59,11 @@ def doit(filename='test.apt',outfile=''):
     not always occur.)
     
     If your are lookiong for a single "container" use "find".  
-    If you want to find all
-    containers of a given type use findall instead. The produces
-    a list of, for example, visits, and you can then read the
-    information in it.  Once you are at the right level, and
-    looking for value for a keyword, then you use "get"
+    If you want to find all containers of a given type use 
+    findall instead. This produces something like a list of 
+    visits, and you can then read the information in it.  
+    Once you are at the right level, and are looking for a 
+    value or a keyword, then you use "get".
 
     The root level for an HST proposal is HSTProposl, so one
     does not use this in burrowing down.
@@ -88,10 +78,8 @@ def doit(filename='test.apt',outfile=''):
     150901  ksl Add a comment field, and put information about the 
             type of vist there.
 
-
     '''
     # Determine a default file name
-
     if outfile=='':
         try:
             outfile=filename[0:filename.rindex('.')]+'_sum.txt'
@@ -109,14 +97,12 @@ def doit(filename='test.apt',outfile=''):
 
     print('Proposal:',apt.get('Phase2ID'))
 
-    # Get some basid information about the proposal
+    # Get some basic information about the proposal
 
     pi=apt.find('ProposalInformation/PrincipalInvestigator')
-    # print type(pi)
     print('PI:',pi.get('LastName'))
 
     # Get information about the targets
-
     # First create lists for the targets to store the infomration we 
     # want
     xname=[]
@@ -125,9 +111,7 @@ def doit(filename='test.apt',outfile=''):
     targets=apt.findall('Targets/FixedTarget')
 
     for one_target in targets:
-        # print one_target.get('Name'),one_target.get('Number')
         position=one_target.find('EquatorialPosition')
-        # print position.get('Value')
 
         xname.append(one_target.get('Name'))
         
@@ -144,20 +128,12 @@ def doit(filename='test.apt',outfile=''):
                 pos = '%s %s %s %s %s %s' %(rr['Hrs'], rr['Mins'], rr['Secs'], dd['Degrees'], dd['Arcmin'], dd['Arcsec'])
                 
         xpos.append(pos)
-        #print xname[-1], pos
-        
-    #return False
-    
+
     # Create a table of the target information
-
     target_table=Table([xname,xpos],names=['Target','Pos'])
-
     print('This is the Target Table')
     print(target_table)
-
-
     print('Now look at any patterns')
-
 
     pattern_type=[]
     pattern_number=[]
@@ -172,15 +148,9 @@ def doit(filename='test.apt',outfile=''):
         pattern_type.append(ptype)
         pattern_number.append(number)
 
-
     print('Now process the visits')
 
-
-    
-    # Now get information about the visits
-
-    # First create lists for the infomation we want to keep
-
+    # Now get information about the visits, First create lists for the infomation we want to keep
     xvisit=[]
     xtarg=[]
     xsamp_seq=[]
@@ -209,20 +179,14 @@ def doit(filename='test.apt',outfile=''):
     for visit in visits:
         exposures =visit.findall('.//Exposure') # This locates all of the exposures
         print('The number of expsosures is %d\n' %  len(exposures))
-
         # Now get infomation about the indidual exposures
         # These may be buried in other containers, Right now we will ignore these
         # And just collect the exposure information
-
         this_visit=visit.get('Number')
         print('There are %d exposures (ignoring repeats) in visit %s' % (len(exposures),this_visit))
 
-
         for exposure in exposures:
-            # print exposure.get('TargetName'),exposure.get('Config'),exposure.get('SpElement')
             ipars=exposure.find('InstrumentParameters')
-            # print ipars.get('SAMP-SEQ'),ipars.get('NSAMP')
-
             xno.append(exposure.get('Number'))
             xvisit.append(visit.get('Number'))
             xtarg.append(exposure.get('TargetName'))
@@ -268,26 +232,18 @@ def doit(filename='test.apt',outfile=''):
                         print('Ta Da')
                         break
                     jj=jj+1
-            
-
-
         i=i+1
-
-
 
     exposure_table=Table([xvisit,xno,xtarg,xconfig,xaper,xfilt,xsamp_seq,xnsamp,xiter, ecomment, xscan],names=['Visit','ExpNo','Target','Config','Aper','Filter','SAMP-SEQ','NSAMP','Repeats','Comment', 'ScanRate'])
 
     print('This is the Exposure Table')
     print(exposure_table)
 
-    # There is apparently some kind of bug that sometimes occurs in numpy sorting so I need to add a row number or the table before joinint them
-
-    n=numpy.arange(1,len(exposure_table)+1)
+    # There is apparently some kind of bug that sometimes occurs in np sorting so I need to add a row number or the table before joinint them
+    n=np.arange(1,len(exposure_table)+1)
     exposure_table['line']=n
 
     # Check that both tables have rows, and return an error if this is not the case
-
-
     if len(exposure_table)==0 or len(target_table)==0:
         print('There are %d and %d rows in the exposere and target tables' % (len(exposure_table),len(target_table)))
         print('Error: read_apt: There should be rows in both exposure and target tables')
@@ -297,18 +253,14 @@ def doit(filename='test.apt',outfile=''):
     test=join(exposure_table,target_table,join_type='left',keys='Target')
 
     # Now get this back into visit and exposure order
-
-    q=numpy.argsort(test['line'])
-
+    q=np.argsort(test['line'])
     test=test[q]
+
     # Now get rid of the extra column
     test.remove_column('line')
-
     print('This is the combined table')
 
-
     # Now convert the positions to degees
-
     ra=[]
     dec=[]
 
@@ -326,7 +278,6 @@ def doit(filename='test.apt',outfile=''):
     test['Dec'].format='12.7f'
 
     # Now add the exposure times
-
     time=[]
     for one in test:
         print(one['SAMP-SEQ'],one['NSAMP'],type(one['NSAMP']), one['Aper'])
@@ -335,7 +286,7 @@ def doit(filename='test.apt',outfile=''):
         # however a check may not be needed if we are sure to include ony
         # IR observations.  If they are need in future, it might be better
         # to check based on the value of NSAMP rather than the type
-        # if type(one['NSAMP']) is str or type(one['NSAMP']) is numpy.str:
+        # if type(one['NSAMP']) is str or type(one['NSAMP']) is np.str:
         #   xtime=get_read_time(one['SAMP-SEQ'],one['NSAMP'])
         # else:
         #   xtime=-99.
@@ -344,18 +295,10 @@ def doit(filename='test.apt',outfile=''):
     
     test['Exptime']=time
 
-
-    # Finaly write this out to a table
-
-    # test.write(outfile,format='ascii.fixed_width_two_line')
-
     # Now reorder the rows of the table:
-
     xtest=test['Visit','ExpNo','Target','RA','Dec','Config','Aper','Filter','SAMP-SEQ','NSAMP','Exptime','Repeats','Comment', 'ScanRate']
     xtest.write(outfile,format='ascii.fixed_width_two_line',overwrite=True)
     print(xtest)
-
-
 
     return True
 
@@ -382,10 +325,8 @@ def pos2deg(pos='13 26 46.2800 -47 28 44.60'):
         zz.append(float(one))
     z=zz
 
-
     ra=z[0]+z[1]/60.+z[2]/3600.
     ra=15.*ra
-
 
     dec=z[3]
     q=z[4]/60.+z[5]/3600.
@@ -400,8 +341,6 @@ def pos2deg(pos='13 26 46.2800 -47 28 44.60'):
 def get_read_time(SAMPSEQ='STEP50', NSAMP=8, APER='IR', scan_rate=None):
     '''
     Get the exposure time from the SAMSEQ and NSAMP
-
-    Notes
 
     History
 
@@ -419,37 +358,37 @@ def get_read_time(SAMPSEQ='STEP50', NSAMP=8, APER='IR', scan_rate=None):
         return -99.
 
     
-    samples = {'RAPID': numpy.arange(15)*2.932+2.932,
-            'STEP25': numpy.array([2.9, 5.89, 8.80, 11.73, 24.23, 49.23, 74.23, 99.23, 124.23, 149.23, 174.23, 199.23, 224.23, 249.23, 274.23]),
-               'STEP50': numpy.array([2.9, 5.87, 8.80, 11.73, 24.23, 49.23, 99.23, 149.23, 199.23, 249.23, 299.23, 349.23, 399.23, 449.23, 499.23]),
-               'STEP100': numpy.array([2.9, 5.8, 8.8, 11.7, 24.23, 49, 99, 199, 299, 399, 499, 599, 699, 799, 899]),
-               'STEP200': numpy.array([2.9, 5.8, 8.8, 11.7, 24.23, 49, 99, 199, 399, 599, 799, 999, 1199, 1399, 1599]),
-               'STEP400': numpy.array([2.9, 5.8, 8.8, 11.7, 24.23, 49, 99, 199, 399, 799, 1199, 1599, 1999, 2399, 2799]),
-                'SPARS5': 2.93+numpy.arange(15)*5,
-               'SPARS10': 2.93+numpy.arange(15)*10,
-               'SPARS25': 2.93+numpy.arange(15)*25,
-               'SPARS50': 2.93+numpy.arange(15)*50,
-               'SPARS100': 2.93+numpy.arange(15)*100,
-               'SPARS200': 2.93+numpy.arange(15)*200}
+    samples = {'RAPID': np.arange(15)*2.932+2.932,
+            'STEP25': np.array([2.9, 5.89, 8.80, 11.73, 24.23, 49.23, 74.23, 99.23, 124.23, 149.23, 174.23, 199.23, 224.23, 249.23, 274.23]),
+               'STEP50': np.array([2.9, 5.87, 8.80, 11.73, 24.23, 49.23, 99.23, 149.23, 199.23, 249.23, 299.23, 349.23, 399.23, 449.23, 499.23]),
+               'STEP100': np.array([2.9, 5.8, 8.8, 11.7, 24.23, 49, 99, 199, 299, 399, 499, 599, 699, 799, 899]),
+               'STEP200': np.array([2.9, 5.8, 8.8, 11.7, 24.23, 49, 99, 199, 399, 599, 799, 999, 1199, 1399, 1599]),
+               'STEP400': np.array([2.9, 5.8, 8.8, 11.7, 24.23, 49, 99, 199, 399, 799, 1199, 1599, 1999, 2399, 2799]),
+                'SPARS5': 2.93+np.arange(15)*5,
+               'SPARS10': 2.93+np.arange(15)*10,
+               'SPARS25': 2.93+np.arange(15)*25,
+               'SPARS50': 2.93+np.arange(15)*50,
+               'SPARS100': 2.93+np.arange(15)*100,
+               'SPARS200': 2.93+np.arange(15)*200}
     
     if '512' in APER:
-        samples = {'RAPID': 0.853*(numpy.arange(15)+1),
-                   'STEP25': numpy.array([0.853, 1.71, 2.56, 3.412, 13.8, 37.8, 59.7, 82.6, 105.5, 128.4, 151.4, 174.3, 197.2, 220.1, 243.0]),
-                    'SPARS5': 0.853+numpy.arange(15)*2.92,
-                   'SPARS25': 0.853+numpy.arange(15)*22.92}        
+        samples = {'RAPID': 0.853*(np.arange(15)+1),
+                   'STEP25': np.array([0.853, 1.71, 2.56, 3.412, 13.8, 37.8, 59.7, 82.6, 105.5, 128.4, 151.4, 174.3, 197.2, 220.1, 243.0]),
+                    'SPARS5': 0.853+np.arange(15)*2.92,
+                   'SPARS25': 0.853+np.arange(15)*22.92}        
     
     if '256' in APER:
-        samples = {'RAPID': 0.278*(numpy.arange(15)+1),
-                    'SPARS5': 0.28+numpy.arange(15)*2.35,
-                   'SPARS10': 0.28+numpy.arange(15)*7.34,
-                   'SPARS25': 0.28+numpy.arange(15)*22.346}        
+        samples = {'RAPID': 0.278*(np.arange(15)+1),
+                    'SPARS5': 0.28+np.arange(15)*2.35,
+                   'SPARS10': 0.28+np.arange(15)*7.34,
+                   'SPARS25': 0.28+np.arange(15)*22.346}        
 
     if '128' in APER:
-        samples = {'RAPID': 0.113*(numpy.arange(15)+1),
-                   'SPARS10': 0.113+numpy.arange(15)*7.18}
+        samples = {'RAPID': 0.113*(np.arange(15)+1),
+                   'SPARS10': 0.113+np.arange(15)*7.18}
     
     if '64' in APER:
-        samples = {'RAPID': 0.061*(numpy.arange(15)+1)}
+        samples = {'RAPID': 0.061*(np.arange(15)+1)}
             
     try:
         xtime=samples[SAMPSEQ][NSAMP]
@@ -495,14 +434,11 @@ def fetch_apt(file='14183.apt'):
     return True
 
 
-
-
-
 # Next lines permit one to run the routine from the command line
 if __name__ == "__main__":
     import sys
     if len(sys.argv)>1:
         # doit(int(sys.argv[1]))
-        doit(sys.argv[1])
+        read_apt_main(sys.argv[1])
     else:
         print('usage: read_apt.py filename')
