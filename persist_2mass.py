@@ -1,25 +1,29 @@
-"""
+#!/usr/bin/env python 
+
+'''
 Make diagnostic persistence plots based on 2MASS cutouts for WFC3/IR exposures
 in an APT file.
-"""
-import os
-from collections import OrderedDict
+'''
 
-import numpy as np
+import os
+
 import astropy.table
 import astropy.io.fits as pyfits
-
+from collections import OrderedDict
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import montage_wrapper as montage
 
+import parse_apt
+
+SATLEVEL = 75000
 def make_plots(apt_file='gbb_snap.apt', program=None):
-    """
+    '''    
     Make plots for all IR exposures in an APT file
-    """
-    from . import parse_apt
-
+    '''
     pid = parse_apt.parse_apt_main(apt_file=apt_file, program=program)
 
     t = astropy.table.Table()
@@ -29,19 +33,8 @@ def make_plots(apt_file='gbb_snap.apt', program=None):
     for i in idx:
         persist_plot(report[i])
 
-    # visit = '86'
-    # ix_visit = idx[report['Visit'] == visit]
-    # for i in ix_visit:
-    #     persist_plot(report[i])
-
-    # for i in idx:
-    #     persist_plot(report[i])
-    #
-    # for visit in visits:
-    #     ix_visit = idx[report['Visit'] == visit]
-
 def persist_plot(table_line=None, force_2mass=False, *args, **kwargs):
-    """
+    '''
     Make diagnostic plot for a given exposure in an APT file.
 
     `table_line` is a line of the the table produced by the "parse_apt" script
@@ -54,9 +47,7 @@ def persist_plot(table_line=None, force_2mass=False, *args, **kwargs):
     PID=14095; Visit='78'; Exp=1; Target='NGC1068'; RA='02:42:40.7700'; Dec='-00:00:47.80'
     POSX=0.0; POSY=0.0; Config='WFC3/IR'; Aper='IR-UVIS'; Filter='F110W';
     SAMPSEQ='STEP50'; NSAMP=8
-
-    """
-
+    '''
     default = {'PID': 14095, 'Visit': '78', 'Exp': 1, 'Target': 'NGC1068', 'RA': '02:42:40.7700', 'Dec': '-00:00:47.80', 'POSX': 0.0, 'POSY': 0.0, 'Config': 'WFC3/IR', 'Aper': 'IR-UVIS', 'Filter': 'F110W', 'SAMPSEQ': 'STEP50', 'NSAMP': 8}
 
     if table_line is None:
@@ -69,13 +60,9 @@ def persist_plot(table_line=None, force_2mass=False, *args, **kwargs):
     for key in list(kwargs.keys()):
         report_line[key] = kwargs[key]
 
-    #print report_line
-    #return False
     twomass_filter = get_2mass_filter(report_line['Filter'])
 
     fits_file = '%d_%s_%s_%s.fits' %(report_line['PID'], str(report_line['Visit']), report_line['Target'], twomass_filter)
-
-    #print fits_file
 
     if (not os.path.exists(fits_file)) | (force_2mass):
         print('Fetch 2MASS...')
@@ -88,9 +75,6 @@ def persist_plot(table_line=None, force_2mass=False, *args, **kwargs):
 
     #### Scaled to WFC3/IR VEGAmag ZP
     scaled = scale_image(fits_file, report_line['Filter'])
-
-    ##### Relevant level for saturation
-    SATLEVEL = 75000
 
     time_to_saturate = SATLEVEL/scaled
     time_to_saturate[time_to_saturate < 0] = 1e8
@@ -166,13 +150,10 @@ def persist_plot(table_line=None, force_2mass=False, *args, **kwargs):
 
     print(fits_file, fig_file)
 
-    #ax.text(0.95, 0.95, filters[f], ha='right', va='top', transform=ax.transAxes)
-    #ax.text(0.5, 0.05, out.split('_')[-1], ha='center', va='bottom', transform=ax.transAxes)
-
 def compare_flt_2mass(flt_file='../RAW/ib6wr9b3q_flt.fits'):
-    """
+    '''
     Compare FLT to scaled 2MASS prediction
-    """
+    '''
     import scipy.ndimage as nd
 
     im = pyfits.open(flt_file)
@@ -182,12 +163,11 @@ def compare_flt_2mass(flt_file='../RAW/ib6wr9b3q_flt.fits'):
     twomass_filter = get_2mass_filter(h['FILTER'])
 
     print('Fetch 2MASS...')
-    montage_cutout(ra=h1['CRVAL1'], dec=h1['CRVAL2'], output='tmp_2mass.fits', survey='2MASS', band=twomass_filter, verbose=False, clean=True, width=2.2, rotation=270-h['PA_V3']+44.6)
-
+    montage_cutout(ra=h1['CRVAL1'], dec=h1['CRVAL2'], output='tmp_2mass.fits', survey='2MASS', band=twomass_filter, verbose=False, clean=False, width=2.2, rotation=270-h['PA_V3']+44.6)
     scaled = scale_image('tmp_2mass.fits', h['FILTER'],twomass_filter)
-
     xs = 6
     fig = plt.figure(figsize=[xs,xs/2.*1.13])
+
     #### 2MASS image
     ax = fig.add_subplot(121)
 
@@ -196,17 +176,14 @@ def compare_flt_2mass(flt_file='../RAW/ib6wr9b3q_flt.fits'):
 
     ax.imshow(clipLog(scaled/max, scale=[-0.1, 10]), vmin=0, vmax=1, interpolation='Nearest', cmap='gray', origin='lower')
     ax.set_title('2MASS, %s' %(twomass_filter.upper()))
-    #ax.text(0.5, 0.98, report_line['Target'], fontsize=10, ha='center', va='top', backgroundcolor='white', transform=ax.transAxes)
-
+    
     #### FLT image
     ax = fig.add_subplot(122)
     flt_data = im['SCI'].data*1.
     mask = im['DQ'].data == 0
-    #flt_data[~mask] = np.median(flt_data[mask])
     flt_data -= np.percentile(flt_data[mask], 5)
 
     sm = nd.gaussian_filter(flt_data[::2,::2], 0.5)
-    #sm = flt_data[::5,::5]
     ax.imshow(clipLog(sm/max, scale=[-0.1, 10]), vmin=0, vmax=1, interpolation='Nearest', cmap='gray', origin='lower')
     ax.set_title(os.path.basename(flt_file))
 
@@ -221,9 +198,9 @@ def compare_flt_2mass(flt_file='../RAW/ib6wr9b3q_flt.fits'):
     plt.close()
 
 def get_2mass_filter(filter='F110W'):
-    """
+    '''
     Choose 2MASS J/H filters for comparision to WFC3
-    """
+    '''
     j_filters = ['F105W', 'F110W', 'F125W', 'F098M', 'F127M', 'F139M', 'F126N', 'F128N', 'F130N', 'F132N']
     if filter in j_filters:
         twomass_filter = 'j'
@@ -250,9 +227,9 @@ def get_read_times(SAMPSEQ='STEP50', NSAMP=8):
     return samples[SAMPSEQ][:NSAMP]
 
 def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
-    """
+    '''
     Scale a 2MASS cutout to a WFC3 filter
-    """
+    '''
     ### ABMAG
     #WFC3_ZPS = {'F110W':26.822}
 
@@ -274,8 +251,8 @@ def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
                 'F132N': 21.945,
                 'F164N': 21.534,
                 'F167N': 21.595,
-		'G102' : 19.6,
-		'G141' : 19.4}
+                'G102' : 19.6,
+                'G141' : 19.4}
 
     im = pyfits.open(img)
     print(im[0].header)
@@ -284,6 +261,7 @@ def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
     try:
         ZP = im[0].header['MAGZP'] #+ 0.885
     except:
+        print('Error: There is no MAGZP value in the header. Using hard-coded value.')
         h = im[0].header
         c = h.cards
         for i in range(len(c)):
@@ -306,11 +284,9 @@ def scale_image(img='twomass-j.fits', filter='F110W',twomass_filter='j'):
     return im[0].data
 
 def clipLog(im, lexp=1000, cmap=[-1.4914, 0.6273], scale=[-0.1,10]):
-    """
+    '''
     DS9-like log scaling
-    """
-    import numpy as np
-
+    '''
     contrast, bias = cmap
     clip = (np.clip(im, scale[0], scale[1])-scale[0])/(scale[1]-scale[0])
     clip_log = np.clip((np.log10(lexp*clip+1)/np.log10(lexp)-bias)*contrast+0.5, 0, 1)
@@ -318,15 +294,11 @@ def clipLog(im, lexp=1000, cmap=[-1.4914, 0.6273], scale=[-0.1,10]):
     return clip_log
 
 def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, width=3, survey='2MASS', band='j', output='montage.fits', verbose=True, clean=True, rotation=None):
-    """
-    Use Montage to automatically generate cutouts.
-    (http://montage.ipac.caltech.edu/index.html)
+    '''
+    Use Montage to automatically generate cutouts. https://github.com/Caltech-IPAC/Montage
 
     Propagate MAGZP keyword from the raw image header.
-    """
-    import os
-    import montage_wrapper as montage
-
+    '''
     if verbose:
         print('Make header')
 
@@ -379,11 +351,5 @@ def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, 
 
     #im[0].header['MAGZP'] = ZP
     im.flush()
-
-    if clean:
-        if verbose:
-            print('rm -rf montage.hdr montage-tmp')
-
-        os.system('rm -rf montage.hdr montage-tmp')
 
 

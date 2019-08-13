@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-"""
+
+'''
 Parse APT file, print information for every exposure
 
 - G. Brammer (July 2015)
 
-"""
+'''
 import os
 
 from collections import OrderedDict
@@ -12,7 +13,7 @@ import numpy as np
 import xmltodict
 
 def parse_apt_main(apt_file='test.apt', program=None):
-    """
+    '''
     Parse an APT file to print a report like
     
 ==  (77) Visit: 4R  (ORIENT = 51.5  - 51.5 ) ==
@@ -27,7 +28,7 @@ def parse_apt_main(apt_file='test.apt', program=None):
     To make a pdf, pipe to an output file and run through a2ps:
     a2ps 13779.report -1 -f 7 --borders=no -s 2 -E -o 13779.ps
     
-    """
+    '''
     #### Plate scale
     ps = {'WFC3/UVIS':{'@X':0.039750, '@Y':0.039591}, 
           'WFC3/IR':{'@X':0.135603, '@Y':0.121308}} 
