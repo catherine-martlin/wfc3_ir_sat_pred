@@ -39,8 +39,6 @@ import numpy as np
 import urllib.request, urllib.error, urllib.parse
 import xml.etree.ElementTree as ET
 
-import persist_2mass
-
 def read_apt_main(filename='test.apt',outfile=''):
     '''
     Read a standard apt file and create a summary of certain

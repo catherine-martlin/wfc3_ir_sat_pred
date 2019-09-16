@@ -330,6 +330,7 @@ def actor_main(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     else:
         print('2Mass objects have already been retrieved to file %s' % two_mass_table)
 
+
     data=ascii.read(two_mass_table,format='ipac')
 
     print('Retrieved %d 2Mass objects' % len(data))
