@@ -120,10 +120,17 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     im=fits.open(fits_file)
 
     im[0].data -= np.percentile(im[0].data, 5)
+    print(im[0].data)
+    # Some data has nan in it and can't for later tests
+    test = np.array(im[0].data)
+    test[np.isnan(test)]=0.0
+    im[0].data = test
     plate_scale = np.abs(im[0].header['CDELT1']*3600)
 
     #### Scaled to WFC3/IR VEGAmag ZP
     scaled = persist_2mass.scale_image(fits_file, xfilter)
+    print(xfilter)
+    print("Scale for calc saturated pixels: ", scaled)
 
     time_to_saturate = SATLEVEL/scaled
 
@@ -235,9 +242,11 @@ def eval_one_main(filename,outroot):
     if outroot=='':
         root=filename[0:filename.rindex('.')]
         html_file=root+'.html'
+        ql_html_file =root+'_ql.html'
     else:
         root=outroot
         html_file=root+'.html'
+        ql_html_file=root+'_ql.html'
 
 
     # Create an output directory for storing some fraction of the
@@ -358,6 +367,7 @@ def eval_one_main(filename,outroot):
 
     print('The name of the output html file is ',html_file)
     actor.make_html(logfile,outfile=html_file)
+    actor.make_ql_html(logfile,outfile=ql_html_file)
 
     return
 

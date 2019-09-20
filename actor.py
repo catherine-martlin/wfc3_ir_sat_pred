@@ -57,6 +57,7 @@ import pylab
 import read_apt
 import persist_2mass
 import xhtml as html
+import ql_html
 
 
 RADIAN=57.29578
@@ -330,6 +331,7 @@ def actor_main(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     else:
         print('2Mass objects have already been retrieved to file %s' % two_mass_table)
 
+
     data=ascii.read(two_mass_table,format='ipac')
 
     print('Retrieved %d 2Mass objects' % len(data))
@@ -380,7 +382,7 @@ def actor_main(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
     if len(xxx)>0:
         xxx.write(outroot+'.stars.txt',format='ascii.fixed_width_two_line',overwrite=True)
     else:
-        print('This field has not bright stars of concrn')
+        print('This field has no bright stars of concern')
 
     # Now make a plot
     data['x']=60*(data['ra']-ra)*math.cos(dec/RADIAN)
@@ -519,6 +521,7 @@ def do_proposal(table='test_sum.txt'):
     g.close()
 
     make_html(logfile)
+    make_ql_html(logfile)
 
     return
 
@@ -615,6 +618,92 @@ def make_html(logfile='test_sum.log',outfile=''):
         
     print('test ',html_file)
     g=open(html_file,'w')
+    g.write(hstring)
+    g.close()
+
+def make_ql_html(logfile='test_sum.log',outfile=''):
+    '''
+    Create an html file using information in the log file that's readable by QuickLook website code
+    History
+    130717 cam  edited make_html to make this to run on logfile but make different img 
+    150901 ksl  fixed so that the htmlfile could be specified
+    '''
+
+
+    xsize=800
+    ysize=400
+
+    try:
+        root=logfile[0:logfile.rindex('_sum')]
+    except ValueError:
+        root=logfile[0:logfile.rindex('.')]
+
+    hstring=ql_html.begin('Summary for %s' % root)
+
+    x=open(logfile,'r')
+    x=x.readlines()
+    expcount = 0
+    for line in x:
+        xline=line.strip()
+        words=xline.split()
+        if len(words)>0:
+            if words[0]=='Header':
+                expcount += 1
+                xline="<a name=\"EXP%04d\">%s</a>" %(expcount, xline.replace('Header','')) 
+                hstring=hstring+ql_html.h2(xline)
+            elif words[0]=='Table':
+                xxx=read_table(words[1])
+                     
+                ### make links from exposure number
+                #print xxx, len(xxx)
+                links = []
+                for i in range(len(xxx)):
+                    link = '<a href=#EXP%04d>%d</a>' %(i+1, xxx['ExpNo'][i])
+                    links.append(link)
+                
+                xxx.add_column(Column(data=links, name='Exp'), 1)
+                xxx.remove_column('ExpNo')
+                
+                # Note: ksl.  I had troble getting the column names to form a 
+                # sincle record.  This is what worked in the end
+                my_table=[xxx.colnames[:]]
+                                
+                for one in xxx:
+                    my_table.append(one)
+
+                hstring=hstring+ql_html.table(my_table)
+            elif words[0]=='Image':
+                ximage=words[1]
+                hstring=hstring+ql_html.image(ximage,'Bright stars image',xsize,ysize)
+            else: 
+                if xline.startswith('Saturated'):
+                    data = xline.split()[-5::2]
+                    colors = ['green','blue','red']
+                    for i in range(3):
+                        if int(data[i]) == 0:
+                            data[i] = "<span style=\"color:grey\">%s</span>" %(data[i])
+                        else:
+                            data[i] = "<span style=\"color:%s; font-weight:bold;\">%s</span>" %(colors[i] ,data[i])
+                            
+                    hstring += ql_html.paragraph('Saturated pixels in image:') + ql_html.table([xline.split()[-6::2], data], width="200px")
+                else:
+                    hstring=hstring+ql_html.paragraph(xline)
+                #print xline
+                
+    hstring=hstring+ql_html.end()
+
+
+    # Create the html file
+
+    if outfile=='':
+        ql_html_file=root+'_ql.html'
+    elif outfile.count('_ql.html')==0:
+        ql_html_file=outfile+'_ql.html'
+    else:
+        ql_html_file=outfile
+        
+    line = 'test ' + ql_html_file
+    g=open(ql_html_file,'w')
     g.write(hstring)
     g.close()
 
