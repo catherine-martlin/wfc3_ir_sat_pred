@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 '''
-Synopsis:
-
 Completely process a single proposal producing all of the outputs
 needed to determine whether visits in the proposal should be bad
 actors
@@ -15,7 +13,7 @@ Description:
 
     These routines parse an apt file to determine what exposures
     are contained in the file, and then retrieve data from
-    IPAC that is intended to helpful in estimating the amount
+    IPAC that is intended to be helpful in estimating the amount
     of persistence that the proposed observations will likely
     induce.
 
@@ -23,8 +21,8 @@ Description:
     attempt to retrieve the apt file from the public repositiory
     of HST apt files.
 
-    The routine creates an apt file for viewing the results, e.g.
-    foo.html  (Subdiary files will be found in a directory created
+    The routine creates a file for viewing the results, e.g.
+    foo.html. Files will be found in a directory created
     by the program, e.g. foo_dir.
 
 Primary routines:
@@ -68,12 +66,6 @@ def read_table(filename='foo.txt'):
     '''
     Read a file using astropy.io.ascii and
     return this
-
-    Notes:
-
-    History:
-
-
     '''
     try:
         data=ascii.read(filename)
@@ -93,7 +85,7 @@ def image_plot(ra=66.76957,dec=26.10453,xfilter='F110W',exp=100.,rad=3,outroot='
 
     Notes
 
-    Insofar as possilbe I will try to use Gabe's routines
+    Insofar as possilbe ksl will try to use Gabe's routines
 
     History
 

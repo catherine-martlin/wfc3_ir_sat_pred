@@ -66,7 +66,7 @@ SATLEVEL=70000
 
 def radec2deg(ra='05:13:06.2',dec='-10:13:14.2'):
     ''' 
-    Convert an ra dec string to degrees.  The string can already
+    Convert an ra/dec string to degrees.  The string can already
     be in degrees in which case all that happens is a conversion to
     a float
 
