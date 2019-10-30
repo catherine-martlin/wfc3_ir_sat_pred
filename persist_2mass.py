@@ -163,7 +163,7 @@ def compare_flt_2mass(flt_file='../RAW/ib6wr9b3q_flt.fits'):
     twomass_filter = get_2mass_filter(h['FILTER'])
 
     print('Fetch 2MASS...')
-    montage_cutout(ra=h1['CRVAL1'], dec=h1['CRVAL2'], output='tmp_2mass.fits', survey='2MASS', band=twomass_filter, verbose=False, clean=False, width=2.2, rotation=270-h['PA_V3']+44.6)
+    montage_cutout(ra=h1['CRVAL1'], dec=h1['CRVAL2'], output='tmp_2mass.fits', survey='2MASS', band=twomass_filter, verbose=False, clean=False, width=5, rotation=270-h['PA_V3']+44.6)
     scaled = scale_image('tmp_2mass.fits', h['FILTER'],twomass_filter)
     xs = 6
     fig = plt.figure(figsize=[xs,xs/2.*1.13])
@@ -297,7 +297,7 @@ def clipLog(im, lexp=1000, cmap=[-1.4914, 0.6273], scale=[-0.1,10]):
 
     return clip_log
 
-def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, width=3, survey='2MASS', band='j', output='montage.fits', verbose=True, clean=True, rotation=None):
+def montage_cutout(ra=172.1305000, dec=+58.5615833, target=None, pix_size=None, width=5, survey='2MASS', band='j', output='montage.fits', verbose=True, clean=True, rotation=None):
     '''
     Use Montage to automatically generate cutouts. https://github.com/Caltech-IPAC/Montage
 
