@@ -46,5 +46,6 @@ dependencies:
     - six==1.12.0
     - urllib3==1.24.1
     - xmltodict==0.12.0
+    - git+https://github.com/catherine-martlin/montage-wrapper/tree/add_2mass_band_to_mHdr
 prefix: /Users/cmartlin/miniconda3/envs/new_sat_pred
 
